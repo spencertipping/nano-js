@@ -1,14 +1,16 @@
 /*
 Author: Tung Dao <tungd@tungdao.com>
 URL:    http://tungdao.com
+
+Modified by Spencer Tipping
 */
-var $$ = {},
+var $  = function (id) {return document.getElementById(id)},
     ua = navigator.userAgent.toLowerCase(),
     pf = navigator.platform.toLowerCase(),
     PF = ua.match(/ip(?:ad|od|hone)/) ? 'ios' : (ua.match(/(?:webos|android)/) || pf.match(/mac|win|linux/) || ['other'])[0],
     UA = ua.match(/(opera|ie|firefox|chrome|version)[\s\/:]([\w\d\.]+)?.*?(safari|version[\s\/:]([\w\d\.]+)|$)/) || [null, 'unknown', 0];
 
-$$.ajax = function(url, cb, data) {
+$.ajax = function(url, cb, data, headers) {
     var xhr = new (ActiveXObject('Microsoft.XMLHttpRequest') || XHMLHttpRequest);
 
     xhr.open(data ? 'POST' : 'GET', url, 1);
@@ -19,14 +21,20 @@ $$.ajax = function(url, cb, data) {
         xhr.readyState > 3 && cb && cb(xhr.responseText, xhr)
     };
 
-    xhr.send(data)
+    headers || (headers = {});
+    for (var k in headers)
+        if (headers.hasOwnProperty(k))
+            xhr.setRequestHeader(k, headers[k]);
+
+    xhr.send(data);
+    return xhr;
 };
 
 (function() {
-    $$.name = (UA[1] == 'version') ? UA[3] : UA[1];
-    $$.platform = PF;
+    $.name = (UA[1] == 'version') ? UA[3] : UA[1];
+    $.platform = PF;
 
-    switch($$.name) {
+    switch($.name) {
         case 'chrome':
             engine = 'webkit';
             break;
@@ -41,28 +49,42 @@ $$.ajax = function(url, cb, data) {
             break;
     }
 
-    $$.engine = engine;
+    $.engine = engine;
 }())
 
-function $(id) {
-    return document.getElementById(id);
+Function.prototype.delay = function(ms) {
+    return setTimeout(this, ms);
 };
 
-Function.prototype.delay = function(ms) {
-    setTimeout(this, s);
+Number.prototype.cancel = function() {
+    clearTimeout(this.valueOf());
 };
 
 Element.prototype.html = function(html) {
-    this.innerHTML = html;
+    if (html !== undefined) {
+        this.innerHTML = html;
+        return this;
+    } else
+        return this.innerHTML;
 };
 
 Element.prototype.css = function(style) {
-    this.style.cssText += ';' + style;
+    var styleRules = [];
+    if (style && style.constructor === Object) {
+        for (var k in style)
+            if (style.hasOwnProperty(k))
+                styleRules.push(k + ': ' + style[k]);
+    } else
+        styleRules = [style];
+
+    this.style.cssText += ';' + styleRules.join(';');
+    return this;
 };
 
 Element.prototype.anim = function(transform, dur){
     this.css('-webkit-transition-duration:' + dur + 's;' +
             '-webkit-transform:' + transform + ';');
+    return this;
 };
 
 Element.prototype.addEvent = function(type, callback) {
@@ -78,4 +100,6 @@ Element.prototype.addEvent = function(type, callback) {
                 });
         }
     }
+
+    return this;
 };
